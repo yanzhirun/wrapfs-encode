@@ -13,9 +13,18 @@
 #include <linux/module.h>
 #include <linux/string.h>
 
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/crypto.h>
+#include <linux/scatterlist.h>
+#include <linux/gfp.h>
+#include <linux/err.h>
+#include <linux/syscalls.h>
+#include <linux/slab.h>
+
 static char *user_name = "Default";
-static char *my_pwd_file = "/home/yzr/my_pwd";
-static char pwd[12] = {0};
+//static char *my_pwd_file = "/etc/.passwordsave";
+static char pwd[64] = {0};
 static int random_number = 0;
 
 
@@ -129,6 +138,13 @@ struct dentry *wrapfs_mount(struct file_system_type *fs_type, int flags,
 {
     void *lower_path_name = (void *) dev_name;
 
+    int err = 0;
+    wrapfs_blowfish_init(pwd, strlen(pwd));
+    err = wrapfs_get_encode_pwd((const char *)user_name, (const char *)random_number, (char *)pwd, strlen(pwd));
+    if (err)
+    {
+        printk(KERN_ALERT"input err passwd\n");
+    }
     return mount_nodev(fs_type, flags, lower_path_name,
             wrapfs_read_super);
 }
@@ -147,9 +163,13 @@ static int __init init_wrapfs_fs(void)
     int err;
 
     //printk("user_name from user space:%s, strlen(user_name : %d\n)", user_name, strlen(user_name));
-    wrapfs_get_encode_pwd((const char *)user_name, (const char *)random_number, (char *)pwd, 12);
-    wrapfs_blowfish_init(pwd, 8);
-    //	wrapfs_key_store(my_pwd_file, "tim", "123456");
+//    printk(KERN_ALERT "-----\n start\n\n get pwd %s\n,get username%s\n",pwd, user_name);
+    //wrapfs_get_encode_pwd((const char *)user_name, (const char *)random_number, (char *)pwd, 12);
+//    printk(KERN_ALERT "--get encode pwd---\n\n get pwd %s\n", pwd);
+    //wrapfs_blowfish_init(pwd, 8);
+
+   // wrapfs_key_store(my_pwd_file, user_name, pwd);
+//    printk(KERN_ALERT "filename : %s\n pwd: %s",my_pwd_file, pwd);
 
     pr_info("Registering wrapfs " WRAPFS_VERSION "\n");
 
@@ -177,12 +197,14 @@ static void __exit exit_wrapfs_fs(void)
 }
 
 module_param(user_name, charp, S_IRUGO);
+//module_param_array(pwd, charp, 12, S_IRUGO);
+module_param_string(pwd, pwd, 60, S_IRUGO);
 
-
-MODULE_AUTHOR("Erez Zadok, Filesystems and Storage Lab, Stony Brook University"
-        " (http://www.fsl.cs.sunysb.edu/)");
-MODULE_DESCRIPTION("Wrapfs " WRAPFS_VERSION
-        " (http://wrapfs.filesystems.org/)");
+MODULE_AUTHOR("YanZhirun WeiXun LiChunjie LiangHuiwu based on wrapfs file system");
+//MODULE_AUTHOR("Erez Zadok, Filesystems and Storage Lab, Stony Brook University"
+//        " (http://www.fsl.cs.sunysb.edu/)");
+//MODULE_DESCRIPTION("Wrapfs " WRAPFS_VERSION
+//        " (http://wrapfs.filesystems.org/)");
 MODULE_LICENSE("GPL");
 
 module_init(init_wrapfs_fs);

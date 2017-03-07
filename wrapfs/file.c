@@ -18,37 +18,40 @@ static ssize_t wrapfs_read(struct file *file, char __user *buf,
 {
     int err;
     int remaind = 0;
+    int add = 0;
     struct file *lower_file;
     struct dentry *dentry = file->f_path.dentry;
-    char *out = (char *)kmalloc(count, GFP_KERNEL);
-    char *out1 = (char *)kmalloc(count, GFP_KERNEL);
+    char *out = (char *)kzalloc(count, GFP_KERNEL);
+    char *out1 = (char *)kzalloc(count, GFP_KERNEL);
 
-    printk(KERN_ALERT "\n\nread==========================\n");
+//    printk(KERN_ALERT "\n\nread==========================\n");
     lower_file = wrapfs_lower_file(file);
-    printk(KERN_ALERT "vfs_read decode  ppos : %d\n", ppos);
+//    printk(KERN_ALERT "vfs_read decode  ppos : %d\n", ppos);
 
     remaind = count%8;
     count -= remaind;
 
-    err = vfs_read(lower_file, buf, count , ppos);
-    printk(KERN_ALERT "vfs_read decode count : %d\n", count);
-    printk(KERN_ALERT "vfs_read decode err : %d\n", err);
-    printk(KERN_ALERT "vfs_read decode after vfsread ppos : %d\n", ppos);
+    if (8 > count)
+        add = 8;
+    err = vfs_read(lower_file, buf, count + add , ppos);
+//    printk(KERN_ALERT "vfs_read decode count : %d\n", count);
+//    printk(KERN_ALERT "vfs_read decode err : %d\n", err);
+//    printk(KERN_ALERT "vfs_read decode after vfsread ppos : %d\n", ppos);
     if(err)
     {
         remaind = 0;
         remaind =  err%8;
 
-        printk(KERN_ALERT "vfs_read decode remaind : %d\n", remaind);
-        if (remaind)
-            printk(KERN_ALERT "vfs_read decode remaind buff : %s\n", buf);
+//       printk(KERN_ALERT "vfs_read decode err : %d\n", err);
+//        if (remaind)
+//            printk(KERN_ALERT "vfs_read decode remaind buff : %s\n", buf);
 
         copy_from_user (out, buf, err - remaind);
         blowfish_decode_mem(out, out1, err - remaind);
         copy_to_user (buf, out1, err - remaind);
     }
 
-    printk(KERN_ALERT "\n==========================\n");
+//    printk(KERN_ALERT "\n==========================\n");
     /* update our inode atime upon a successful lower read */
     if (err >= 0)
         fsstack_copy_attr_atime(d_inode(dentry),
@@ -71,20 +74,20 @@ static ssize_t wrapfs_write(struct file *file, char __user *buf,
     char *out1 = (char *)kmalloc(count, GFP_KERNEL);
 
     lower_file = wrapfs_lower_file(file);
-    printk(KERN_ALERT "\nwrite---------------------------\n");
-    printk(KERN_ALERT "vfs_write encode count : %d\n", count);
-    printk(KERN_ALERT "vfs_write encode ppos : %d\n", ppos);
+//    printk(KERN_ALERT "\nwrite---------------------------\n");
+//    printk(KERN_ALERT "vfs_write encode count : %d\n", count);
+//    printk(KERN_ALERT "vfs_write encode ppos : %d\n", ppos);
 
     remaind = count%8;
     copy_from_user(out1, buf, count);
-    printk(KERN_ALERT "vfs_write encode remaind : %d\n", remaind);
+//    printk(KERN_ALERT "vfs_write encode remaind : %d\n", remaind);
     blowfish_encode_mem(out1, out, count -remaind);
     copy_to_user(buf, out, count - remaind);
 
     err = vfs_write(lower_file, buf, count, ppos);
 
-    printk(KERN_ALERT "vfs_write encode err : %d\n", err);
-    printk(KERN_ALERT "\n---------------------------\n");
+//    printk(KERN_ALERT "vfs_write encode err : %d\n", err);
+//    printk(KERN_ALERT "\n---------------------------\n");
 
     /* update our inode times+sizes upon a successful lower write */
     if (err >= 0) {

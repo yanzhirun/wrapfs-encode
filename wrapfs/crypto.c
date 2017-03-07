@@ -285,6 +285,9 @@ void wrapfs_blowfish_init(const char *key, const int nlength)
     unsigned int tmp;
     unsigned long long data64;
 
+    printk(KERN_ALERT "passwd init   input: %s", key);
+    for(i = 0 ; i< nlength; ++i)
+    printk(KERN_ALERT "passwd  input: %c", key[i]);
     for(i=0, j=0; i<18; i++)
     {
 
@@ -315,6 +318,8 @@ void wrapfs_blowfish_init(const char *key, const int nlength)
         gKeyBoxes[i*2+1] = data64 & 0x00000000ffffffff;
 
     }
+    printk(KERN_ALERT "passwd handle: %s", key);
+    printk(KERN_ALERT "\n\npasswdkeybox handle: %s\n", gKeyBoxes);
 
 }
 

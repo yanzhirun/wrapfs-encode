@@ -1,9 +1,8 @@
 #!/bin/bash
-
 lsmod | grep wrapfs
 if [ $? -eq 0 ]; then
-umount /home/yzr/Desktop/device
-rmmod wrapfs
+sudo umount $HOME/Desktop/.device
+sudo rmmod wrapfs
 if [ $? -eq 0 ]; then
     echo "rmmod OK!"
 fi

@@ -27,6 +27,7 @@
 #include <asm/unistd.h>
 #include <linux/slab.h>
 #include "crypto_hash.h"
+#include "key_store.h"
 
 #define BITS_PER_BYTE 0x8
 
@@ -274,29 +275,57 @@ exit:
 int wrapfs_get_encode_pwd(const char* file_name, const char* random, char *pwd, int length)
 {
 
-
     cryptop_digest_sha512 digest_sha512;
 
     int input_length = 0;
     input_length = strlen(file_name);
     unsigned long randNum = 0;
     char final[100] ;
-    get_random_bytes(&randNum, sizeof(unsigned long));
+//    get_random_bytes(&randNum, sizeof(unsigned long));
     char str[8];
-    sprintf(str,"%x",randNum);
-    input_length = input_length + 8;
-    strcpy(final,file_name);
-    strcat(final,str);
+//    sprintf(str,"%x",randNum);
+//    input_length = input_length + 8;
+//    strcpy(final,file_name);
+//    strcat(final,str);
     //printk(KERN_ALERT "We get random number: %ld\n", randNum);
     //printk("file+random :%s\n",final);
     //printk("input_length :%d\n",input_length);
 
-    crypto_hash_sha512((uint8_t *) final, strlen(final), &digest_sha512);
-    //memcpy(pwd, (const void *)&digest_sha512 , length);
-    sprintf(pwd, "%8x", pwd_ret);
+    crypto_hash_sha512((uint8_t *) pwd, strlen(pwd), &digest_sha512);
+    //printk(KERN_ALERT "hash pwd %s\n", digest_sha512);
+//    crypto_hash_sha512((uint8_t *) final, strlen(final), &digest_sha512);
+    memcpy(pwd, (const void *)&digest_sha512 , length);
+    sprintf(pwd, "%d", pwd_ret);
+    //sprintf(pwd, "%8x", pwd_ret);
 
-    //printk("GET DIGEST--- wrapfs_encode_HASH:%s\n",pwd);
     //printk("get result : %d", pwd_ret);
+    printk("GET DIGEST--- wrapfs_encode_HASH:%s\n",pwd);
+    //save pwd_ret
+    char buf[92]={0};
+    char * getkey = NULL;
+    int err = 0;
+    err = wrapfs_get_key(file_name, random, buf);
+    //printk("get key buf:::: : %d", buf);
+//    wrapfs_get_key(file_name, random, getkey);
+
+    if (strlen(buf)<=5)
+    //if (getkey == NULL)
+    {
+        printk(KERN_ALERT"no save passwd ");
+        wrapfs_key_store(file_name, random, pwd);
+    }
+    else{
+        //printk(KERN_ALERT"getkey : %s",getkey);
+        if (strcmp(buf,pwd) == 0)
+        //if (strcmp(getkey,pwd) == 0)
+            printk(KERN_ALERT"Congratulations! Right passwd\n");
+        else{
+            printk(KERN_ALERT"input err passwd");
+            return 1;
+        }
+    }
+
+
     return 0;
 }
 
