@@ -143,7 +143,7 @@ struct dentry *wrapfs_mount(struct file_system_type *fs_type, int flags,
     err = wrapfs_get_encode_pwd((const char *)user_name, (const char *)random_number, (char *)pwd, strlen(pwd));
     if (err)
     {
-        printk(KERN_ALERT"input err passwd\n");
+        printk(KERN_ALERT"input_err_passwd\n");
     }
     return mount_nodev(fs_type, flags, lower_path_name,
             wrapfs_read_super);
