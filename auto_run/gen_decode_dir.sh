@@ -47,6 +47,7 @@ gen_module(){
         sudo insmod $HOME/Desktop/wrapfs-bata1/auto_run/wrapfs.ko user_name='ubuntu' pwd=`cat $PASSWORDSAVE`
         if [ $? -eq 1 ]; then
             echo "you need restart the config"
+        fi
     fi
 }
 
@@ -56,7 +57,7 @@ print_OK(){
 }
 
 select_cont_path(){
-    exec 3>&1
+#    exec 3>&1
     if $DIALOG --title "Please choose a file for private decode filesystem" "$@" --fselect $HOME/Desktop/cont/ 16 48 2>$SRC_DIR_NAME ; then
     DIR_NAME=`cat src_dir_name`
     if [ ! -d $DIR_NAME ]; then
@@ -182,39 +183,42 @@ gen_auto_run(){
 #install_encode_fs
 rm -rf $SRC_DIR_NAME
 rm -rf $DEVICE_DIR_NAME
-rm -rf $auto_install_file
+#rm -rf $auto_install_file
 
 get_user_name
-gen_auto_run_shell
+#gen_auto_run_shell
 
 start_info
 select_cont_path
 while [ $? -eq 1 ]
 do
     echo_wrong_msg
-    set_src_dir
+    select_cont_path
 done
-#set_src_dir
-#while [ $? -eq 1 ]
-#do
-#    echo_wrong_msg
-#    set_src_dir
-#done
-set_device_dir
+set_src_dir
 while [ $? -eq 1 ]
 do
     echo_wrong_msg
-    set_device_dir
+    set_src_dir
 done
-set_password
-while [ $? -eq 1 ]
-do
-    echo_wrong_password
-    set_password
-done
-gen_module
+#set_device_dir
+#while [ $? -eq 1 ]
+#do
+#    echo_wrong_msg
+#    set_device_dir
+#done
+#set_password
+sudo sh /home/yzr/Desktop/wrapfs-bata1/auto_run/module_gen.sh
+echo "module gen\n"
+sudo sh /home/yzr/Desktop/wrapfs-bata1/auto_run/insmod.sh
+#while [ $? -eq 1 ]
+#do
+    #    echo_wrong_password
+    #    set_password
+#done
+#gen_module
 
 #attach_auto_run_shell `cat $DEVICE_DIR_NAME` `cat $SRC_DIR_NAME` 
-chmod a+x $auto_install_file
-sudo sh $auto_install_file
+#chmod a+x $auto_install_file
+#sudo sh $auto_install_file
 #cp $auto_install_file /etc/init.d/
