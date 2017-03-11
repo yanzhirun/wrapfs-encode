@@ -32,11 +32,12 @@ static ssize_t wrapfs_read(struct file *file, char __user *buf,
     count -= remaind;
 
     if (8 > count)
-        add = 8;
+        add = remaind;
     err = vfs_read(lower_file, buf, count + add , ppos);
-//    printk(KERN_ALERT "vfs_read decode count : %d\n", count);
-//    printk(KERN_ALERT "vfs_read decode err : %d\n", err);
-//    printk(KERN_ALERT "vfs_read decode after vfsread ppos : %d\n", ppos);
+    printk(KERN_ALERT "vfs_read decode count : %d\n", count);
+    printk(KERN_ALERT "vfs_read decode err : %d\n", err);
+    printk(KERN_ALERT "vfs_read decode ppos : %d\n", *ppos);
+ //   printk(KERN_ALERT "vfs_read decode after  : %s\n", buf);
     if(err)
     {
         remaind = 0;
@@ -74,20 +75,33 @@ static ssize_t wrapfs_write(struct file *file, char __user *buf,
     char *out1 = (char *)kmalloc(count, GFP_KERNEL);
 
     lower_file = wrapfs_lower_file(file);
-//    printk(KERN_ALERT "\nwrite---------------------------\n");
-//    printk(KERN_ALERT "vfs_write encode count : %d\n", count);
-//    printk(KERN_ALERT "vfs_write encode ppos : %d\n", ppos);
 
+    printk(KERN_ALERT "=======\nvfs_write encode count : %d\n", count);
     remaind = count%8;
+    if (count >= 8)
+    {
+        count -=remaind;
+    }
+    else{
+        printk(KERN_ALERT "if count:%d == remaind : %d\n", count, remaind);
+        //count = remaind;
+        goto left;
+    }
     copy_from_user(out1, buf, count);
-//    printk(KERN_ALERT "vfs_write encode remaind : %d\n", remaind);
-    blowfish_encode_mem(out1, out, count -remaind);
-    copy_to_user(buf, out, count - remaind);
+    blowfish_encode_mem(out1, out, count);
+    copy_to_user(buf, out, count);
 
-    err = vfs_write(lower_file, buf, count, ppos);
+    printk(KERN_ALERT "vfs_write -------before vfs ppos : %d\n", *ppos);
+    printk(KERN_ALERT "vfs_write encode remaind : %d\n", remaind);
+    err = vfs_write(lower_file, buf, count + remaind, ppos);
 
-//    printk(KERN_ALERT "vfs_write encode err : %d\n", err);
-//    printk(KERN_ALERT "\n---------------------------\n");
+    *ppos -=remaind;
+left:
+    if(count == remaind)
+        err = vfs_write(lower_file, buf, remaind, ppos);
+    printk(KERN_ALERT "vfs_write encode err : %d\n", err);
+    printk(KERN_ALERT "vfs_write ----after vfs ppos : %d\n", *ppos);
+    //    printk(KERN_ALERT "vfs_write encode buf : %s\n", buf);
 
     /* update our inode times+sizes upon a successful lower write */
     if (err >= 0) {
