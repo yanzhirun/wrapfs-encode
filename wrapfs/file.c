@@ -64,44 +64,95 @@ static ssize_t wrapfs_read(struct file *file, char __user *buf,
     return err;
 }
 
+static char remaind_last[8] = {0};
+
 static ssize_t wrapfs_write(struct file *file, char __user *buf,
         size_t count, loff_t *ppos)
 {
     int err, lenth_user_buf = 0;
     int remaind = 0;
+    int remaind_last_len = 0;
+    char remaind_change[8] = {0};
+    int last_err = 0;
+
+    int real_encode_count = 0;
+    int before_left = 0;
+    int err_right = 0;
+
     struct file *lower_file;
     struct dentry *dentry = file->f_path.dentry;
     char *out = (char *)kmalloc(count, GFP_KERNEL);
     char *out1 = (char *)kmalloc(count, GFP_KERNEL);
 
+    mm_segment_t old_fs;
+
     lower_file = wrapfs_lower_file(file);
 
     printk(KERN_ALERT "=======\nvfs_write encode count : %d\n", count);
-    remaind = count%8;
-    if (count >= 8)
-    {
-        count -=remaind;
-    }
-    else{
-        printk(KERN_ALERT "if count:%d == remaind : %d\n", count, remaind);
-        //count = remaind;
-        goto left;
-    }
+    //count = remaind;
     copy_from_user(out1, buf, count);
-    blowfish_encode_mem(out1, out, count);
-    copy_to_user(buf, out, count);
+    remaind_last_len = strlen(remaind_last);
+    printk(KERN_ALERT "vfs_write encode remaind_last_len:%d\n", remaind_last_len);
+
+
+    if (0 != remaind_last_len)
+    {
+        before_left = 8 - remaind_last_len;
+        memcpy(remaind_last + remaind_last_len, out1, before_left);
+        old_fs = get_fs();
+        set_fs(KERNEL_DS);
+
+        printk(KERN_ALERT "vfs write 8 last_err content: %s\n", remaind_last);
+        blowfish_encode_mem(remaind_last, remaind_change, 8);
+        memset(remaind_last, 0, 8);
+        printk(KERN_ALERT "ppos before 8 last:%d\n", *ppos);
+        if (0 != *ppos && *ppos >= remaind_last_len)
+            *ppos -= remaind_last_len;
+        printk(KERN_ALERT "ppos before 8 last(modify):%d\n", *ppos);
+        last_err = vfs_write(lower_file, remaind_change, 8, ppos);
+
+        printk(KERN_ALERT "ppos after 8 last:%d\n", *ppos);
+        printk(KERN_ALERT "vfs write 8 last_err  : %d\n", last_err);
+        set_fs(old_fs);
+
+        remaind = (count - before_left)%8;
+        real_encode_count = count - before_left - remaind;
+    }
+    else
+    {
+        remaind = count%8;
+        real_encode_count = count - remaind;
+        before_left = 0;
+    }
+// copy less <8Bytes of tail
+    if(0 != remaind)
+    {
+        memset(remaind_last, 0, 8);
+        memcpy(remaind_last, out1 + before_left + real_encode_count, remaind);
+        printk(KERN_ALERT "vfs write first save less 8: %s\n", remaind_last);
+    }
+
+    blowfish_encode_mem(out1 + before_left, out, real_encode_count);
+    copy_to_user(buf, out, real_encode_count);
 
     printk(KERN_ALERT "vfs_write -------before vfs ppos : %d\n", *ppos);
     printk(KERN_ALERT "vfs_write encode remaind : %d\n", remaind);
-    err = vfs_write(lower_file, buf, count + remaind, ppos);
+    err = vfs_write(lower_file, buf, real_encode_count, ppos);
+    err += before_left;
 
-    *ppos -=remaind;
+    err_right = vfs_write(lower_file, buf + real_encode_count + before_left, remaind, ppos);
+    printk(KERN_ALERT "vfs_write encode err_right : %d\n", err_right);
+    err += err_right;
+
 left:
     if(count == remaind)
-        err = vfs_write(lower_file, buf, remaind, ppos);
+        err += vfs_write(lower_file, buf, remaind, ppos);
+
+
     printk(KERN_ALERT "vfs_write encode err : %d\n", err);
     printk(KERN_ALERT "vfs_write ----after vfs ppos : %d\n", *ppos);
     //    printk(KERN_ALERT "vfs_write encode buf : %s\n", buf);
+
 
     /* update our inode times+sizes upon a successful lower write */
     if (err >= 0) {
