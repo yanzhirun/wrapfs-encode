@@ -88,6 +88,10 @@ static ssize_t wrapfs_write(struct file *file, char __user *buf,
 
     lower_file = wrapfs_lower_file(file);
 
+    if(*ppos == 0)
+    {
+        memset(remaind_last, 0, 8);
+    }
     printk(KERN_ALERT "=======\nvfs_write encode count : %d\n", count);
     //count = remaind;
     copy_from_user(out1, buf, count);
