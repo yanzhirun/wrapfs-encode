@@ -92,7 +92,7 @@ static ssize_t wrapfs_write(struct file *file, char __user *buf,
     //count = remaind;
     copy_from_user(out1, buf, count);
     remaind_last_len = strlen(remaind_last);
-    printk(KERN_ALERT "vfs_write encode remaind_last_len:%d\n", remaind_last_len);
+//    printk(KERN_ALERT "vfs_write encode remaind_last_len:%d\n", remaind_last_len);
 
 
     if (0 != remaind_last_len)
@@ -105,7 +105,7 @@ static ssize_t wrapfs_write(struct file *file, char __user *buf,
         printk(KERN_ALERT "vfs write 8 last_err content: %s\n", remaind_last);
         blowfish_encode_mem(remaind_last, remaind_change, 8);
         memset(remaind_last, 0, 8);
-        printk(KERN_ALERT "ppos before 8 last:%d\n", *ppos);
+  //      printk(KERN_ALERT "ppos before 8 last:%d\n", *ppos);
         if (0 != *ppos && *ppos >= remaind_last_len)
             *ppos -= remaind_last_len;
         printk(KERN_ALERT "ppos before 8 last(modify):%d\n", *ppos);
